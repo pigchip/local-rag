@@ -1,0 +1,38 @@
+# Fly.io deployment for the Local RAG backend.
+# Usage:
+#   fly launch --no-deploy        # creates the app (edit the name below first)
+#   fly volume create ragdata --size 3 --region <your-region>
+#   fly secrets set GROQ_API_KEY=... GEMINI_API_KEY=... LLM_PROVIDER=groq CORS_ORIGINS=https://your-frontend
+#   fly deploy
+
+app = "local-rag-backend"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DATA_DIR = "/data"
+  PORT = "8080"
+
+[[mounts]]
+  source = "ragdata"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+    hard_limit = 40
+
+# Free-tier friendly VM. Bump memory if you use LLM_PROVIDER=local.
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"
