@@ -7,6 +7,7 @@ services:
       - DATA_DIR=/data
       - LLM_PROVIDER=${LLM_PROVIDER:-groq}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - HF_TOKEN=${HF_TOKEN:-}

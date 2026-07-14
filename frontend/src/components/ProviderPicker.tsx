@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ScrollSelect,
+  ScrollSelectContent,
+  ScrollSelectItem,
+  ScrollSelectTrigger,
+} from "@/components/ui/scroll-select";
 import { useProviders } from "@/hooks/useApi";
 import { useAppStore } from "@/store/appStore";
+import { cn } from "@/lib/utils";
 
 export function ProviderPicker() {
   const { data } = useProviders();
@@ -36,7 +36,7 @@ export function ProviderPicker() {
         <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Provider
         </label>
-        <Select
+        <ScrollSelect
           value={provider ?? undefined}
           onValueChange={(v) => {
             setProvider(v);
@@ -44,18 +44,20 @@ export function ProviderPicker() {
             if (p) setModel(p.default_model);
           }}
         >
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder="Select provider" />
-          </SelectTrigger>
-          <SelectContent>
+          <ScrollSelectTrigger className="h-8 text-xs">
+            <span className={cn(!current && "text-muted-foreground")}>
+              {current ? current.label : "Select provider"}
+            </span>
+          </ScrollSelectTrigger>
+          <ScrollSelectContent>
             {data.providers.map((p) => (
-              <SelectItem key={p.id} value={p.id} disabled={!p.available}>
+              <ScrollSelectItem key={p.id} value={p.id} disabled={!p.available}>
                 {p.label}
                 {!p.available ? " (no key)" : ""}
-              </SelectItem>
+              </ScrollSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </ScrollSelectContent>
+        </ScrollSelect>
       </div>
 
       {current && current.models.length > 0 && (
@@ -63,18 +65,20 @@ export function ProviderPicker() {
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
             Model
           </label>
-          <Select value={model ?? undefined} onValueChange={setModel}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Select model" />
-            </SelectTrigger>
-            <SelectContent>
+          <ScrollSelect value={model ?? undefined} onValueChange={setModel}>
+            <ScrollSelectTrigger className="h-8 text-xs">
+              <span className={cn(!model && "text-muted-foreground")}>
+                {model || "Select model"}
+              </span>
+            </ScrollSelectTrigger>
+            <ScrollSelectContent>
               {current.models.map((m) => (
-                <SelectItem key={m} value={m}>
+                <ScrollSelectItem key={m} value={m}>
                   {m}
-                </SelectItem>
+                </ScrollSelectItem>
               ))}
-            </SelectContent>
-          </Select>
+            </ScrollSelectContent>
+          </ScrollSelect>
         </div>
       )}
     </div>

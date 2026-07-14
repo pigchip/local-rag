@@ -1,0 +1,25 @@
+# Caddy config: automatic HTTPS (Let's Encrypt) for your DuckDNS/other domain.
+# Serves the built SPA and reverse-proxies the API to the backend container.
+
+{$DOMAIN} {
+	encode gzip
+
+	# API + SSE streaming -> FastAPI backend. The /api prefix is preserved
+	# (backend routes live under /api/...). flush_interval -1 keeps
+	# Server-Sent Events (chat token stream) unbuffered.
+	@api path /api/*
+	handle @api {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+
+	# Everything else -> the static SPA, with client-side routing fallback.
+	handle {
+		root * /srv/www
+		try_files {path} /index.html
+		file_server
+	}
+
+	tls {$TLS_EMAIL}
+}

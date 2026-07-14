@@ -1,0 +1,75 @@
+{
+  "description": "Generic golden Q&A set over the bundled sample_data/ for end-to-end RAG evaluation. Domain-neutral and reproducible for anyone cloning the repo. 'relevant_sources' lists the file(s) that contain the answer; 'type' is 'factual' or 'negative' (answer not in the knowledge base).",
+  "items": [
+    {
+      "id": "vector-store",
+      "type": "factual",
+      "question": "What vector store does Local RAG use?",
+      "ground_truth": "Local RAG uses a local LanceDB vector store.",
+      "relevant_sources": ["overview.md"]
+    },
+    {
+      "id": "chat-ui",
+      "type": "factual",
+      "question": "What provides the chat web interface in Local RAG?",
+      "ground_truth": "Chainlit provides the chat web interface.",
+      "relevant_sources": ["overview.md"]
+    },
+    {
+      "id": "answer-generator",
+      "type": "factual",
+      "question": "What generates the answers in Local RAG?",
+      "ground_truth": "A local HuggingFace transformers LLM generates the answers.",
+      "relevant_sources": ["overview.md"]
+    },
+    {
+      "id": "needs-api-keys",
+      "type": "factual",
+      "question": "Does Local RAG require API keys or logins?",
+      "ground_truth": "No. Local RAG runs locally and for free, so no API keys or logins are required.",
+      "relevant_sources": ["overview.md"]
+    },
+    {
+      "id": "headless-retrieval",
+      "type": "factual",
+      "question": "Which libraries provide headless retrieval?",
+      "ground_truth": "Haystack and LanceDB provide headless retrieval, with no text generation.",
+      "relevant_sources": ["overview.md"]
+    },
+    {
+      "id": "retrieval-how",
+      "type": "factual",
+      "question": "How does the query pipeline find relevant chunks?",
+      "ground_truth": "It embeds the question locally with sentence-transformers and searches LanceDB for the most relevant chunks.",
+      "relevant_sources": ["overview.md"]
+    },
+    {
+      "id": "add-function",
+      "type": "factual",
+      "question": "What does the add function do?",
+      "ground_truth": "The add function returns the sum of two integers.",
+      "relevant_sources": ["calculator.py"]
+    },
+    {
+      "id": "fibonacci-function",
+      "type": "factual",
+      "question": "What does the fibonacci function compute?",
+      "ground_truth": "It returns the n-th Fibonacci number using simple iteration.",
+      "relevant_sources": ["calculator.py"]
+    },
+    {
+      "id": "calculator-language",
+      "type": "factual",
+      "question": "What programming language is the calculator module written in?",
+      "ground_truth": "Python.",
+      "relevant_sources": ["calculator.py"]
+    },
+    {
+      "id": "unknown-db-password",
+      "type": "negative",
+      "question": "What database password does Local RAG use?",
+      "ground_truth": "The knowledge base does not contain this information.",
+      "relevant_sources": []
+    }
+  ]
+}

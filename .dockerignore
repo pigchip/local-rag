@@ -1,0 +1,17 @@
+# Keep the Docker build context small (used by the root Dockerfile / HF Space).
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+backend/data
+frontend/dist
+.git
+deploy/oracle
+*.md
+!README.md
+.env
+**/.env
+
+# Dev-only evaluation suite — never ship in the image.
+backend/eval
+backend/requirements-eval.txt

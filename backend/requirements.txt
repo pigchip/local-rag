@@ -16,6 +16,8 @@ lancedb==0.13.0
 
 # --- Local embeddings (no API key required) ---
 sentence-transformers>=2.2.0
+# Explicit: used for optional data persistence to a HF Dataset (deploy/hf-space).
+huggingface_hub>=0.23.0
 # Pinned to stay compatible with lancedb 0.13.0 (which requires numpy<2).
 numpy==1.26.4
 scipy==1.13.1

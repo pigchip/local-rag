@@ -10,13 +10,14 @@ import { useAppStore } from "@/store/appStore";
 import { cn } from "@/lib/utils";
 
 export function ChatView() {
-  const { activeSessionId, activeKb, provider, model, topK } = useAppStore();
+  const { activeSessionId, activeKb, setActiveKb, provider, model, topK } = useAppStore();
   const { data: session } = useSession(activeSessionId);
   const { data: kbs } = useKnowledgeBases();
   const { streaming, send, stop } = useChat(activeSessionId);
   const updateSession = useUpdateSession();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const syncedSessionRef = useRef<string | null>(null);
 
   const messages = session?.messages ?? [];
   const activeKbMeta = kbs?.find((k) => k.name === activeKb);
@@ -26,12 +27,21 @@ export function ChatView() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages.length, streaming.text, streaming.active]);
 
+  // When switching to a different chat, restore the knowledge base that session
+  // was last using. Runs once per session id so it won't override live changes.
+  useEffect(() => {
+    if (session && syncedSessionRef.current !== session.id) {
+      syncedSessionRef.current = session.id;
+      if (session.kb_name) setActiveKb(session.kb_name);
+    }
+  }, [session, setActiveKb]);
+
   const submit = async (text: string) => {
     const query = text.trim();
     if (!query || !activeSessionId || !activeKb || streaming.active) return;
     setInput("");
-    // Title the session from its first user message.
-    if (messages.length === 0 && session) {
+    // Keep the session title in sync with the user's most recent question.
+    if (session) {
       updateSession.mutate({
         id: session.id,
         body: { title: query.slice(0, 60) },
@@ -60,40 +70,35 @@ export function ChatView() {
 
   return (
     <div className="flex h-full flex-1 flex-col">
+      {/* Persistent KB hint header */}
+      {activeKb && (
+        <div className="border-b border-border bg-muted/30 px-4 py-2.5">
+          <div className="mx-auto max-w-3xl">
+            <div className="flex items-center gap-1.5 text-sm font-medium">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              {activeKb}
+            </div>
+            {activeKbMeta?.description && (
+              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                {activeKbMeta.description}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-auto scrollbar-thin">
         <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
           {messages.length === 0 && !streaming.active && (
-            <>
-              <EmptyState
-                title={activeKb ? `Ask about “${activeKb}”` : "Select a knowledge base"}
-                subtitle={
-                  activeKb
-                    ? activeKbMeta?.description ||
-                      "Your questions are answered using only the indexed documents, with citations."
-                    : "Choose or create a knowledge base in the sidebar to get started."
-                }
-              />
-              {activeKb && examples.length > 0 && (
-                <div className="mx-auto w-full max-w-2xl">
-                  <p className="mb-2 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Try one of these
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {examples.map((ex, i) => (
-                      <button
-                        key={i}
-                        onClick={() => submit(ex)}
-                        className="group flex items-start gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm transition-colors hover:border-primary/60 hover:bg-accent"
-                      >
-                        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary/70 group-hover:text-primary" />
-                        <span>{ex}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+            <EmptyState
+              title={activeKb ? `Ask about “${activeKb}”` : "Select a knowledge base"}
+              subtitle={
+                activeKb
+                  ? "Your questions are answered using only the indexed documents, with citations."
+                  : "Choose or create a knowledge base in the sidebar to get started."
+              }
+            />
           )}
 
           {messages.map((m) => (
@@ -127,6 +132,21 @@ export function ChatView() {
       {/* Composer */}
       <div className="border-t border-border bg-background/80 px-4 py-3 backdrop-blur">
         <div className="mx-auto max-w-3xl">
+          {activeKb && examples.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {examples.map((ex, i) => (
+                <button
+                  key={i}
+                  onClick={() => submit(ex)}
+                  disabled={streaming.active}
+                  className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-left text-xs transition-colors hover:border-primary/60 hover:bg-accent disabled:opacity-50"
+                >
+                  <Sparkles className="h-3 w-3 shrink-0 text-primary/70 group-hover:text-primary" />
+                  <span className="truncate">{ex}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {!activeKb && (
             <p className="mb-2 text-xs text-muted-foreground">
               Select a knowledge base in the sidebar to enable chat.

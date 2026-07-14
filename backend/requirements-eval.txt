@@ -1,0 +1,17 @@
+# Optional dependencies for the evaluation suite (eval/).
+#
+# These are NOT needed to run the app itself and are intentionally kept out of
+# the Docker image. Install locally only when you want to run benchmarks:
+#
+#     .venv/Scripts/python.exe -m pip install -r requirements-eval.txt
+#
+# The golden-set and generation metrics rely only on packages already in
+# requirements.txt (sentence-transformers, numpy). The items below are for the
+# BEIR retrieval benchmark and an optional metric cross-check.
+
+# Load BEIR datasets (SciFact, NFCorpus) from the HuggingFace Hub.
+datasets>=2.14.0
+
+# Optional: standard IR-metric cross-check (trec_eval). If it fails to build on
+# your platform, the suite still works with its built-in metric implementations.
+# pytrec_eval-terrier>=0.5.6

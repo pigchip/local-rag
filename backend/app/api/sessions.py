@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.db import repo
+from app.core import persistence
 from app.services import chat_service
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -43,12 +44,14 @@ def list_sessions() -> dict:
 
 @router.post("")
 def create_session(body: SessionCreate) -> dict:
-    return repo.create_session(
+    session = repo.create_session(
         title=body.title or "New chat",
         kb_name=body.kb_name,
         provider=body.provider,
         model=body.model,
     )
+    persistence.mark_dirty()
+    return session
 
 
 @router.get("/{session_id}")
@@ -64,6 +67,7 @@ def update_session(session_id: str, body: SessionUpdate) -> dict:
     session = repo.update_session(session_id, **body.model_dump())
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found.")
+    persistence.mark_dirty()
     return session
 
 
@@ -71,6 +75,7 @@ def update_session(session_id: str, body: SessionUpdate) -> dict:
 def delete_session(session_id: str) -> dict:
     if not repo.delete_session(session_id):
         raise HTTPException(status_code=404, detail="Session not found.")
+    persistence.mark_dirty()
     return {"deleted": session_id}
 
 
@@ -107,6 +112,8 @@ def send_message(session_id: str, body: ChatRequest) -> StreamingResponse:
                 yield _sse(event)
         except Exception as exc:  # pragma: no cover - defensive
             yield _sse({"type": "error", "error": str(exc)})
+        finally:
+            persistence.mark_dirty()
 
     return StreamingResponse(
         event_stream(),

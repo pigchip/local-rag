@@ -6,3 +6,7 @@ data/
 .pytest_cache/
 tests/
 *.md
+
+# Dev-only evaluation suite — never ship in the image.
+eval/
+requirements-eval.txt

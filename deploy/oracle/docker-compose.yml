@@ -1,0 +1,70 @@
+# Production stack for a single Oracle Cloud "Always Free" ARM VM.
+#
+#   caddy      -> auto-HTTPS reverse proxy; serves the built frontend and
+#                 proxies /api/* to the backend. Single origin => no CORS issues.
+#   frontend   -> one-shot builder that outputs static files into a shared volume.
+#   backend    -> FastAPI + Haystack + LanceDB (persistent data on a named volume).
+#
+# Usage (on the VM):
+#   cd local-rag/deploy/oracle
+#   cp .env.example .env   # then edit: DOMAIN, LLM_PROVIDER, *_API_KEY
+#   docker compose up -d --build
+#
+# All images are multi-arch and run natively on the ARM Ampere A1 VM.
+
+services:
+  backend:
+    build:
+      context: ../../backend
+    restart: unless-stopped
+    environment:
+      - DATA_DIR=/data
+      - PORT=8000
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      # Same-origin frontend, so CORS can stay closed to just the domain.
+      - CORS_ORIGINS=https://${DOMAIN}
+    volumes:
+      - rag_data:/data
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: ../deploy/oracle/Dockerfile.frontend
+      # Same-origin: empty base URL makes the SPA call /api on the same host.
+      args:
+        VITE_API_BASE_URL: ""
+    volumes:
+      - web_dist:/dist
+    # One-shot: copies the built assets into the shared volume, then exits.
+    command: sh -c "cp -r /app/dist/. /dist/ && echo 'frontend build published to volume'"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - TLS_EMAIL=${TLS_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - web_dist:/srv/www:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  rag_data:
+  web_dist:
+  caddy_data:
+  caddy_config:

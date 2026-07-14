@@ -119,6 +119,28 @@ class GroqGenerator(OpenAICompatGenerator):
         return settings.groq_api_key
 
 
+class NvidiaGenerator(OpenAICompatGenerator):
+    name = "nvidia"
+    label = "NVIDIA NIM"
+    base_url = "https://integrate.api.nvidia.com/v1"
+
+    def __init__(self) -> None:
+        super().__init__(
+            models=[
+                "meta/llama-3.3-70b-instruct",
+                "meta/llama-3.1-8b-instruct",
+                "nvidia/llama-3.1-nemotron-70b-instruct",
+                "qwen/qwen2.5-7b-instruct",
+                "mistralai/mistral-7b-instruct-v0.3",
+            ],
+            model_override=settings.nvidia_model,
+        )
+
+    @property
+    def api_key(self) -> str:
+        return settings.nvidia_api_key
+
+
 class OpenRouterGenerator(OpenAICompatGenerator):
     name = "openrouter"
     label = "OpenRouter"

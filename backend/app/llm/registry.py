@@ -17,6 +17,7 @@ from app.llm.local_hf import LocalHFGenerator
 from app.llm.openai_compat import (
     GroqGenerator,
     HFInferenceGenerator,
+    NvidiaGenerator,
     OpenRouterGenerator,
 )
 
@@ -27,6 +28,7 @@ log = get_logger("llm")
 def _generators() -> dict[str, Generator]:
     instances: list[Generator] = [
         GroqGenerator(),
+        NvidiaGenerator(),
         GeminiGenerator(),
         OpenRouterGenerator(),
         HFInferenceGenerator(),

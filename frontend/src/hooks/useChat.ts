@@ -22,8 +22,6 @@ export function useChat(sessionId: string | null) {
   const [streaming, setStreaming] = useState<StreamingState>(EMPTY);
   const abortRef = useRef<AbortController | null>(null);
 
-  const reset = useCallback(() => setStreaming(EMPTY), []);
-
   const send = useCallback(
     async (params: ChatParams) => {
       if (!sessionId) return;
@@ -53,9 +51,12 @@ export function useChat(sessionId: string | null) {
           }));
         }
       } finally {
-        setStreaming((s) => ({ ...s, active: false }));
-        qc.invalidateQueries({ queryKey: ["session", sessionId] });
+        // Wait for the persisted session to reload before clearing the live
+        // streaming bubble, otherwise the answer renders twice (streamed copy +
+        // refetched copy) or briefly flickers out. Preserve any error message.
+        await qc.invalidateQueries({ queryKey: ["session", sessionId] });
         qc.invalidateQueries({ queryKey: ["sessions"] });
+        setStreaming((s) => (s.error ? { ...s, active: false } : EMPTY));
       }
     },
     [sessionId, qc]
@@ -66,5 +67,5 @@ export function useChat(sessionId: string | null) {
     setStreaming((s) => ({ ...s, active: false }));
   }, []);
 
-  return { streaming, send, stop, reset };
+  return { streaming, send, stop };
 }

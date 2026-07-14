@@ -11,18 +11,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ScrollSelect,
+  ScrollSelectContent,
+  ScrollSelectItem,
+  ScrollSelectTrigger,
+} from "@/components/ui/scroll-select";
 import { ProviderPicker } from "./ProviderPicker";
 import {
   useSessions,
   useKnowledgeBases,
   useCreateSession,
   useDeleteSession,
+  useUpdateSession,
 } from "@/hooks/useApi";
 import { useAppStore } from "@/store/appStore";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ export function Sidebar({
   const { data: kbs } = useKnowledgeBases();
   const createSession = useCreateSession();
   const deleteSession = useDeleteSession();
+  const updateSession = useUpdateSession();
   const {
     activeSessionId,
     setActiveSession,
@@ -48,7 +49,16 @@ export function Sidebar({
     provider,
     model,
   } = useAppStore();
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(true);
+
+  // Switching the KB updates local state and, if a chat is open, persists the
+  // choice onto that session so it is restored when the user returns to it.
+  const onKbChange = (kb: string) => {
+    setActiveKb(kb);
+    if (activeSessionId) {
+      updateSession.mutate({ id: activeSessionId, body: { kb_name: kb } });
+    }
+  };
 
   const newChat = async () => {
     const s = await createSession.mutateAsync({
@@ -88,26 +98,44 @@ export function Sidebar({
         <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
           <Database className="h-3.5 w-3.5" /> Knowledge base
         </label>
-        <Select
+        <ScrollSelect
           value={activeKb ?? undefined}
-          onValueChange={(v) => setActiveKb(v)}
+          onValueChange={onKbChange}
         >
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="Select a knowledge base" />
-          </SelectTrigger>
-          <SelectContent>
+          <ScrollSelectTrigger className="h-9">
+            {activeKb ? (
+              <span className="truncate">
+                {activeKb}
+                {activeKbMeta
+                  ? ` · ${activeKbMeta.file_count} file${activeKbMeta.file_count === 1 ? "" : "s"}`
+                  : ""}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Select a knowledge base</span>
+            )}
+          </ScrollSelectTrigger>
+          <ScrollSelectContent>
             {kbs?.length === 0 && (
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
                 No knowledge bases yet
               </div>
             )}
             {kbs?.map((kb) => (
-              <SelectItem key={kb.name} value={kb.name}>
-                {kb.name} · {kb.file_count} file{kb.file_count === 1 ? "" : "s"}
-              </SelectItem>
+              <ScrollSelectItem key={kb.name} value={kb.name}>
+                <div className="flex flex-col gap-0.5 py-0.5">
+                  <span className="text-sm">
+                    {kb.name} · {kb.file_count} file{kb.file_count === 1 ? "" : "s"}
+                  </span>
+                  {kb.description && (
+                    <span className="line-clamp-2 max-w-[16rem] text-[11px] leading-snug text-muted-foreground">
+                      {kb.description}
+                    </span>
+                  )}
+                </div>
+              </ScrollSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </ScrollSelectContent>
+        </ScrollSelect>
         {activeKbMeta?.description && (
           <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
             {activeKbMeta.description}

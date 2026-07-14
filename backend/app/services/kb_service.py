@@ -33,6 +33,16 @@ def _clean_description(text: str) -> str:
     return line.strip()[:200]
 
 
+def _clean_text(text: str) -> str:
+    """Strip citation markers/quotes but preserve full multi-sentence prose."""
+    cleaned = _CITATION_RE.sub("", text or "")
+    cleaned = cleaned.strip().strip('"').strip()
+    # Collapse whitespace/newlines and tidy stray space-before-punctuation.
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = re.sub(r"\s+([.!?,;:])", r"\1", cleaned)
+    return cleaned.strip()[:600]
+
+
 def sanitize_kb_name(name: str) -> str:
     """Normalize a user-provided KB name into a safe LanceDB table name."""
     slug = _NAME_RE.sub("_", (name or "").strip().lower()).strip("_")
@@ -79,7 +89,7 @@ def _parse_meta_response(text: str, fallback_desc: str) -> tuple[str, list[str]]
     if isinstance(obj, dict):
         desc = obj.get("description")
         if isinstance(desc, str) and desc.strip():
-            description = _clean_description(desc)
+            description = _clean_text(desc)
         ex = obj.get("examples")
         if isinstance(ex, list):
             examples = [_clean_description(str(e)) for e in ex if str(e).strip()][:4]
@@ -87,7 +97,7 @@ def _parse_meta_response(text: str, fallback_desc: str) -> tuple[str, list[str]]
         # Fallback: first line is the description, remaining non-empty lines are examples.
         lines = [ln.strip("-*0123456789. \t") for ln in text.splitlines() if ln.strip()]
         if lines:
-            description = _clean_description(lines[0])
+            description = _clean_text(lines[0])
             examples = [_clean_description(l) for l in lines[1:5]]
     return description, examples
 
@@ -114,9 +124,12 @@ def describe_kb(
             prompt = (
                 "You are given excerpts from a knowledge base. Respond with ONLY a JSON "
                 "object (no markdown, no prose) of the form:\n"
-                '{"description": "<one concise sentence, max 25 words, describing what '
-                'this knowledge base is about>", "examples": ["<question>", "<question>", '
-                '"<question>"]}\n'
+                '{"description": "<2-3 sentences, ~40-70 words>", "examples": '
+                '["<question>", "<question>", "<question>"]}\n'
+                "The description must (1) state the topic/domain this knowledge base "
+                "covers, and (2) describe the kinds of questions a user can ask that it "
+                "can answer. Write it as natural prose the user will read to decide "
+                "whether this KB fits their question.\n"
                 "The 3 examples must be natural, specific questions a user could ask that "
                 "this knowledge base can answer. Do not include citations or source markers.\n\n"
                 f"Excerpts:\n{joined}"
@@ -129,11 +142,6 @@ def describe_kb(
 
     repo.set_kb_description(kb_name, description, examples=examples)
     return {"description": description, "examples": examples}
-
-
-def generate_description(kb_name: str, provider: str | None = None, model: str | None = None) -> str:
-    """Backwards-compatible wrapper returning just the description."""
-    return describe_kb(kb_name, provider, model)["description"]
 
 
 def create_kb(

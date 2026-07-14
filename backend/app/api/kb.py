@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
+from app.core import persistence
 from app.services import kb_service
 
 router = APIRouter(prefix="/api/kb", tags=["knowledge-base"])
@@ -23,7 +24,9 @@ def describe_kb(
     """(Re)generate the description and example prompts for an existing KB."""
     if kb_name not in kb_service.rag.list_tables():
         raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found.")
-    return kb_service.describe_kb(kb_name, provider=provider, model=model)
+    result = kb_service.describe_kb(kb_name, provider=provider, model=model)
+    persistence.mark_dirty()
+    return result
 
 
 @router.post("")
@@ -41,6 +44,7 @@ async def create_kb(
             status_code=422,
             detail="No indexable content was found in the uploaded file(s).",
         )
+    persistence.mark_dirty()
     return result
 
 
@@ -59,10 +63,12 @@ async def add_files(
 ) -> dict:
     if not files:
         raise HTTPException(status_code=400, detail="At least one file is required.")
-    return kb_service.add_files(
+    result = kb_service.add_files(
         kb_name, files, regenerate_description=regenerate_description,
         provider=provider, model=model,
     )
+    persistence.mark_dirty()
+    return result
 
 
 @router.delete("/{kb_name}/files")
@@ -70,10 +76,12 @@ def delete_file(kb_name: str, file_path: str) -> dict:
     removed = kb_service.delete_file(kb_name, file_path)
     if removed == 0:
         raise HTTPException(status_code=404, detail="File not found in knowledge base.")
+    persistence.mark_dirty()
     return {"removed_chunks": removed}
 
 
 @router.delete("/{kb_name}")
 def clear_kb(kb_name: str) -> dict:
     kb_service.clear_kb(kb_name)
+    persistence.mark_dirty()
     return {"cleared": kb_name}

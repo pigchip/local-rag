@@ -14,6 +14,11 @@ backend/data/
 .env
 !.env.example
 
+# eval suite (dev-only): ignore generated reports + downloaded BEIR datasets
+backend/eval/results/*
+!backend/eval/results/.gitkeep
+backend/eval/datasets/beir_cache/
+
 # misc
 .DS_Store
 *.log

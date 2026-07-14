@@ -46,17 +46,19 @@ class Settings(BaseSettings):
     split_overlap: int = Field(default=30)
 
     # --- Generation provider selection ---
-    # One of: groq | gemini | openrouter | hf | local
+    # One of: groq | nvidia | gemini | openrouter | hf | local
     llm_provider: str = Field(default="groq")
 
     # Provider API keys (only the selected provider's key is required).
     groq_api_key: str = Field(default="")
+    nvidia_api_key: str = Field(default="")
     gemini_api_key: str = Field(default="")
     openrouter_api_key: str = Field(default="")
     hf_token: str = Field(default="")
 
     # Optional per-provider default model overrides (blank = provider default).
     groq_model: str = Field(default="")
+    nvidia_model: str = Field(default="")
     gemini_model: str = Field(default="")
     openrouter_model: str = Field(default="")
     hf_model: str = Field(default="")
