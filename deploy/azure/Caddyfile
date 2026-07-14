@@ -1,0 +1,17 @@
+# Caddy config: automatic HTTPS (Let's Encrypt) for the backend API domain.
+# API-only — the SPA is served by GitHub Pages at aguzmancruz.com/local-rag.
+#
+# The DNS record for {$DOMAIN} must point at this VM and be DNS-only (grey
+# cloud) in Cloudflare so the HTTP-01 challenge reaches Caddy directly.
+
+{$DOMAIN} {
+	encode gzip
+
+	# Everything is the API (routes live under /api/...). flush_interval -1
+	# keeps Server-Sent Events (the chat token stream) unbuffered.
+	reverse_proxy backend:8000 {
+		flush_interval -1
+	}
+
+	tls {$TLS_EMAIL}
+}

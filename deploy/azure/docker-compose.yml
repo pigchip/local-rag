@@ -1,0 +1,60 @@
+# Production stack for a single Azure VM (Standard_B2s, Ubuntu 22.04 + Docker).
+#
+#   backend  -> FastAPI + Haystack + LanceDB (API only; the SPA is hosted
+#               separately on GitHub Pages at aguzmancruz.com/local-rag).
+#               Data persists on a mounted Azure managed disk (/mnt/ragdata).
+#   caddy    -> auto-HTTPS reverse proxy for api.aguzmancruz.com, proxies all
+#               traffic to the backend and keeps SSE token streams unbuffered.
+#
+# Usage (on the VM):
+#   cd local-rag/deploy/azure
+#   cp .env.example .env      # then edit: DOMAIN, TLS_EMAIL, CORS_ORIGINS, keys
+#   docker compose up -d --build
+#
+# Prereq: a Cloudflare DNS record for ${DOMAIN} (e.g. api.aguzmancruz.com) must
+# point at this VM's public IP, DNS-only (grey cloud) so Caddy's HTTP-01
+# challenge can reach the VM directly.
+
+services:
+  backend:
+    build:
+      context: ../../backend
+    restart: unless-stopped
+    environment:
+      - DATA_DIR=/data
+      - PORT=8000
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      # Cross-origin frontend on GitHub Pages. Must be the EXACT origin because
+      # the API sends credentials (allow_credentials=True) — wildcard is invalid.
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://aguzmancruz.com}
+    volumes:
+      # Native ext4 on the Azure managed data disk keeps SQLite WAL + LanceDB
+      # reliable (unlike Azure Files/SMB).
+      - ${DATA_HOST_PATH:-/mnt/ragdata}:/data
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - TLS_EMAIL=${TLS_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
